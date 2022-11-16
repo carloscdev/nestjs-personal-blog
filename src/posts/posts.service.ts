@@ -1,11 +1,8 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
+import { User } from 'src/auth/entities/auth.entity';
+import { handleValidationError } from 'src/common/mixins/handle-error.mixins';
 import { generateSlug } from '../common/mixins';
 import { CreatePostDto } from './dto/create-post.dto';
 import { SearchPostDto } from './dto/search-post.dto';
@@ -19,15 +16,16 @@ export class PostsService {
     private readonly postModel: Model<Post>,
   ) {}
 
-  async create(createPostDto: CreatePostDto) {
+  async create(createPostDto: CreatePostDto, user: User) {
     try {
       const post = await this.postModel.create({
         ...createPostDto,
         slug: generateSlug(createPostDto.title),
+        user,
       });
       return post;
     } catch (error) {
-      this.handleValidationError(error);
+      handleValidationError(error);
     }
   }
 
@@ -39,7 +37,8 @@ export class PostsService {
       .limit(limit)
       .skip(offset)
       .select('-__v')
-      .sort('created_at');
+      .sort('created_at')
+      .populate('user');
     return posts;
   }
 
@@ -54,7 +53,7 @@ export class PostsService {
     if (!post) {
       throw new NotFoundException(`Post with slug or id ${id} not found`);
     }
-    return post;
+    return post.populate('user');
   }
 
   async update(id: string, updatePostDto: UpdatePostDto) {
@@ -66,7 +65,7 @@ export class PostsService {
       await post.updateOne(updatePostDto, { new: true });
       return { ...post.toJSON(), ...updatePostDto };
     } catch (error) {
-      this.handleValidationError(error);
+      handleValidationError(error);
     }
   }
 
@@ -78,15 +77,5 @@ export class PostsService {
       statusCode: 200,
       message: 'Was deleted successfully',
     };
-  }
-
-  handleValidationError(error: any) {
-    if (error?.code === 11000)
-      throw new BadRequestException(
-        `This title was created: ${JSON.stringify(error.keyValue)}`,
-      );
-
-    console.log(error);
-    throw new InternalServerErrorException('Please, check server logs');
   }
 }

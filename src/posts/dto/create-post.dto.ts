@@ -19,10 +19,6 @@ export class CreatePostDto {
   @IsString()
   description: string;
 
-  @IsString()
-  @IsOptional()
-  author?: string;
-
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
