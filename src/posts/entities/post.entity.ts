@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
+import { User } from 'src/auth/entities/auth.entity';
 
 @Schema()
 export class Post extends Document {
@@ -26,9 +27,10 @@ export class Post extends Document {
   created_at: Date;
 
   @Prop({
-    default: '@carloscdev',
+    type: SchemaTypes.ObjectId,
+    ref: User.name,
   })
-  author: string;
+  user: Types.ObjectId;
 
   @Prop()
   tags: string[];
